@@ -1,0 +1,47 @@
+// SPDX-License-Identifier: MIT
+
+pragma solidity ^0.8.0;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract OctToken is ERC20, Ownable {
+    // Total supply: 100 million
+    uint256 private constant TOTAL_SUPPLY = 100000000;
+    // Flag of unlocking transfer for accounts other than the owner
+    bool private transferUnlocked = false;
+
+    /**
+     * @dev Initializes the contract, mint total supply to the deployer (owner).
+     */
+    constructor() ERC20("OctToken", "OCT") {
+        _mint(msg.sender, TOTAL_SUPPLY);
+    }
+
+    /**
+     * @dev Unlocks transfer for all other accounts
+     */
+    function unlockTransfer() public onlyOwner {
+        transferUnlocked = true;
+    }
+
+    /**
+     * @dev Throws if called by any account other than the owner while the contract is still locked.
+     */
+    modifier onlyOwnerOrTransferUnlocked() {
+        require(
+            owner() == _msgSender() || transferUnlocked == true,
+            "Caller is not the owner and transfer is still locked"
+        );
+        _;
+    }
+
+    /**
+     * @dev Override default implementation by simply add modifier `onlyOwnerOrContractUnlocked`
+     */
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal override onlyOwnerOrTransferUnlocked {}
+}
