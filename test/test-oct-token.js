@@ -14,7 +14,7 @@ describe("OctToken", function () {
     const address1 = await account1.getAddress();
     const address2 = await account2.getAddress();
 
-    console.log('Address of signer: %s', ownerAddress);
+    console.log('Address of owner: %s', ownerAddress);
     expect(await oct.balanceOf(ownerAddress)).to.equal(100000000);
 
     console.log('Transfer 20000000 from %s to %s', ownerAddress, address1);
@@ -41,5 +41,11 @@ describe("OctToken", function () {
     await tx.wait();
     expect(await oct.balanceOf(address1)).to.equal(15000000);
     expect(await oct.balanceOf(address2)).to.equal(35000000);
+
+    console.log('Transfer 10000000 from %s to %s while transfer is unlocked, should success.', address2, address1);
+    tx = await oct.connect(account2).transfer(address1, 10000000);
+    await tx.wait();
+    expect(await oct.balanceOf(address1)).to.equal(25000000);
+    expect(await oct.balanceOf(address2)).to.equal(25000000);
   });
 });

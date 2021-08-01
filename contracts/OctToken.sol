@@ -8,8 +8,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract OctToken is ERC20, Ownable {
     // Total supply: 100 million
     uint256 private constant TOTAL_SUPPLY = 100000000;
+
     // Flag of unlocking transfer for accounts other than the owner
-    bool private transferUnlocked = false;
+    bool private _transferUnlocked = false;
 
     /**
      * @dev Initializes the contract, mint total supply to the deployer (owner).
@@ -22,7 +23,7 @@ contract OctToken is ERC20, Ownable {
      * @dev Unlocks transfer for all other accounts
      */
     function unlockTransfer() public onlyOwner {
-        transferUnlocked = true;
+        _transferUnlocked = true;
     }
 
     /**
@@ -30,8 +31,8 @@ contract OctToken is ERC20, Ownable {
      */
     modifier onlyOwnerOrTransferUnlocked() {
         require(
-            owner() == _msgSender() || transferUnlocked == true,
-            "Caller is not the owner and transfer is still locked"
+            owner() == _msgSender() || _transferUnlocked == true,
+            "OctToken: Caller is not the owner and transfer is still locked"
         );
         _;
     }
