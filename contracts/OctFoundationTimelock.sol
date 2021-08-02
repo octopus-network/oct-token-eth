@@ -149,7 +149,7 @@ contract OctFoundationTimelock is Ownable {
             .withdrawedBalance;
         require(
             releasedBalanceOf(_msgSender()) - withdrawedBalance >= amount,
-            "OctFoundationTimelock: withdraw amount exceeds released balance"
+            "OctFoundationTimelock: withdraw amount exceeds available released balance"
         );
         require(
             token().balanceOf(address(this)) >= amount,
