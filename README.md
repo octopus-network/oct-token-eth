@@ -130,7 +130,6 @@ struct Beneficiary {
 * Anyone can call function `transferUnreleasedBalance(address, amount)` to transfer a part or whole of his unreleased balance to another account (address).
   * Get beneficiary corresponding to `_msgSender()`.
   * The param `amount` must be less or equal to `unreleasedBalanceOf(_msgSender())`
-  * Call private function `_benefit(address, amount, false)`.
   * If `block.timestamp` is smaller than `EARLIEST_RELEASE_START_TIME`, update the properties of the beneficiary corresponding to `_msgSender()` as follow:
     * `unreleasedBalance` : `unreleasedBalance` - `amount`
     * `releaseStartTime` : `EARLIEST_RELEASE_START_TIME`
@@ -143,6 +142,7 @@ struct Beneficiary {
     * `withdrawedBalance` : NO change
     * `unreleasedSupervisedBalance` : `unreleasedSupervisedBalanceOf(_msgSender())`
     * `releaseStartTime` : `block.timestamp` - (`block.timestamp` % `SECONDS_OF_A_DAY`)
+  * Call private function `_benefit(address, amount, false)`.
 * Only the owner (deployer) of this contract can call function `decreaseBenefitOf(address, amount)` to decrease the benefit of a certain beneficiary corresponding to param `address`.
   * Get beneficiary corresponding to param `address`.
   * The param `amount` must be less or equal to `unreleasedSupervisedBalanceOf(address)`

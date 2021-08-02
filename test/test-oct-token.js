@@ -2,7 +2,7 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
 describe("OctToken", function () {
-  it("Should return the balance of owner, which is equal to total supply", async function () {
+  it("Testing scenario for contract 'OctToken'", async function () {
     const OctToken = await ethers.getContractFactory("OctToken");
     const oct = await OctToken.deploy();
     await oct.deployed();
@@ -29,7 +29,7 @@ describe("OctToken", function () {
 
     console.log('Transfer 5000000 from %s to %s while transfer is locked, should fail.', address1, address2);
     await oct.connect(account1).transfer(address2, 5000000).catch((error) => {
-      console.log('Error catched: %s', error);
+      console.log('Successfully catched error: %s', error);
     });
 
     console.log('Unlock transfer.')
