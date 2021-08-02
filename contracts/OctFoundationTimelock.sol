@@ -156,11 +156,11 @@ contract OctFoundationTimelock is Ownable {
             "OctFoundationTimelock: deposited amount is not enough"
         );
 
-        token().safeTransfer(_msgSender(), amount);
-
         _beneficiaries[_msgSender()].withdrawedBalance =
             withdrawedBalance +
             amount;
+
+        token().safeTransfer(_msgSender(), amount);
     }
 
     /**
