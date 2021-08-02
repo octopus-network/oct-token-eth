@@ -1,4 +1,6 @@
-# oct-token
+# oct-token-eth
+
+This repository contains contracts for OCT token on Ethereum network.
 
 ## Function specification
 
