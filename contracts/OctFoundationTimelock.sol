@@ -66,6 +66,11 @@ contract OctFoundationTimelock is Ownable {
     // Map of all beneficiaries
     mapping(address => Beneficiary) private _beneficiaries;
 
+    event BenefitAdded(address indexed beneficiary, uint256 amount, bool supervised);
+    event BenefitReduced(address indexed beneficiary, uint256 amount);
+    event BenefitTransfered(address indexed from, address indexed to, uint256 amount);
+    event BenefitWithdrawed(address indexed beneficiary, uint256 amount);
+
     constructor(IERC20 token_) {
         _token = token_;
     }
@@ -161,6 +166,8 @@ contract OctFoundationTimelock is Ownable {
             amount;
 
         token().safeTransfer(_msgSender(), amount);
+
+        emit BenefitWithdrawed(_msgSender(), amount);
     }
 
     /**
@@ -210,6 +217,8 @@ contract OctFoundationTimelock is Ownable {
         bool supervised
     ) public onlyOwner {
         _benefit(addr, amount, supervised);
+
+        emit BenefitAdded(addr, amount, supervised);
     }
 
     /**
@@ -238,6 +247,8 @@ contract OctFoundationTimelock is Ownable {
                 (block.timestamp % SECONDS_OF_A_DAY);
         }
         _benefit(addr, amount, false);
+
+        emit BenefitTransfered(_msgSender(), addr, amount);
     }
 
     /**
@@ -262,5 +273,7 @@ contract OctFoundationTimelock is Ownable {
                 block.timestamp -
                 (block.timestamp % SECONDS_OF_A_DAY);
         }
+
+        emit BenefitReduced(addr, amount);
     }
 }
