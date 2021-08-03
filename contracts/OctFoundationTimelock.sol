@@ -66,9 +66,17 @@ contract OctFoundationTimelock is Ownable {
     // Map of all beneficiaries
     mapping(address => Beneficiary) private _beneficiaries;
 
-    event BenefitAdded(address indexed beneficiary, uint256 amount, bool supervised);
+    event BenefitAdded(
+        address indexed beneficiary,
+        uint256 amount,
+        bool supervised
+    );
     event BenefitReduced(address indexed beneficiary, uint256 amount);
-    event BenefitTransfered(address indexed from, address indexed to, uint256 amount);
+    event BenefitTransfered(
+        address indexed from,
+        address indexed to,
+        uint256 amount
+    );
     event BenefitWithdrawed(address indexed beneficiary, uint256 amount);
 
     constructor(IERC20 token_) {
@@ -224,10 +232,21 @@ contract OctFoundationTimelock is Ownable {
     /**
      * @notice Transfer amount of unreleased balance of the caller to another account (address).
      */
-    function transferUnreleasedBalance(address addr, uint256 amount) public {
+    function transferUnreleasedBalance(
+        address addr,
+        uint256 amount,
+        bytes32 msgHash,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) public {
         require(
             unreleasedBalanceOf(_msgSender()) >= amount,
             "OctFoundationTimelock: transfer amount exceeds unreleased balance"
+        );
+        require(
+            ecrecover(msgHash, v, r, s) == addr,
+            "OctFoundationTimelock: beneficiary MUST be an EOA"
         );
         Beneficiary storage beneficiary = _beneficiaries[_msgSender()];
         if (block.timestamp < EARLIEST_RELEASE_START_TIME) {

@@ -1,5 +1,6 @@
 const { expect } = require("chai");
 const { id } = require("ethers/lib/utils");
+const { hashMessage } = require("ethers/lib/utils");
 const { ethers } = require("hardhat");
 
 async function benefit(octTimelock, addr, amount, supervised) {
@@ -8,8 +9,14 @@ async function benefit(octTimelock, addr, amount, supervised) {
   console.log(receipt.events?.filter((x) => { return x.event == "BenefitAdded" }));
 }
 
-async function transferUnreleasedBalance(octTimelock, signer, addr, amount) {
-  var tx = await octTimelock.connect(signer).transferUnreleasedBalance(addr, amount);
+async function transferUnreleasedBalance(octTimelock, signer, accountOfAddr, addr, amount) {
+  var msg = "transfer benefit";
+  var sig = await accountOfAddr.signMessage(msg);
+  var r = '0x' + sig.slice(2, 64 + 2)
+  var s = '0x' + sig.slice(64 + 2, 128 + 2)
+  var v = '0x' + sig.slice(128 + 2, 130 + 2);
+  var msgHash = hashMessage(msg);
+  var tx = await octTimelock.connect(signer).transferUnreleasedBalance(addr, amount, msgHash, v, r, s);
   var receipt = await tx.wait();
   console.log(receipt.events?.filter((x) => { return x.event == "BenefitTransfered" }));
 }
@@ -81,7 +88,7 @@ describe("OctFoundationTimelock", function () {
     await octTimelock.connect(account1).benefit(address2, 1000000, false).catch((error) => {
       console.log('Successfully catched error: %s', error);
     });
-    await transferUnreleasedBalance(octTimelock, account1, address2, 1000000);
+    await transferUnreleasedBalance(octTimelock, account1, account2, address2, 1000000);
     expect(await octTimelock.unreleasedBalanceOf(address1)).to.equal(4000000);
     expect(await octTimelock.unreleasedSupervisedBalanceOf(address1)).to.equal(2000000);
     expect(await octTimelock.releasedBalanceOf(address1)).to.equal(0);
@@ -137,10 +144,13 @@ describe("OctFoundationTimelock", function () {
     /**
      * Test 'transferUnreleasedBalance'
      */
-    await octTimelock.connect(account1).transferUnreleasedBalance(address2, 2800000).catch((error) => {
+    await octTimelock.connect(account1).transferUnreleasedBalance(address2, 2667885, "0x0101010101010101010101010101010101010101010101010101010101010101", "0x01", "0x0101010101010101010101010101010101010101010101010101010101010101", "0x0101010101010101010101010101010101010101010101010101010101010101").catch((error) => {
       console.log('Successfully catched error: %s', error);
     });
-    await transferUnreleasedBalance(octTimelock, account1, address2, 1000000);
+    await octTimelock.connect(account1).transferUnreleasedBalance(address2, 2667884, "0x0101010101010101010101010101010101010101010101010101010101010101", "0x01", "0x0101010101010101010101010101010101010101010101010101010101010101", "0x0101010101010101010101010101010101010101010101010101010101010101").catch((error) => {
+      console.log('Successfully catched error: %s', error);
+    });
+    await transferUnreleasedBalance(octTimelock, account1, account2, address2, 1000000);
     expect(await octTimelock.unreleasedBalanceOf(address1)).to.equal(1667884);
     expect(await octTimelock.unreleasedSupervisedBalanceOf(address1)).to.equal(666971);
     expect(await octTimelock.releasedBalanceOf(address1)).to.equal(1665145);

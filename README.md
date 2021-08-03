@@ -131,9 +131,10 @@ struct Beneficiary {
   * The param `amount` must be less or equal to `token().balanceOf(address(this))`.
   * Increase `withdrawedBalance` by `amount`.
   * Transfer `amount` of OCT tokens to `_msgSender()`.
-* Anyone can call function `transferUnreleasedBalance(address, amount)` to transfer a part or whole of his unreleased balance to another account (address).
+* Anyone can call function `transferUnreleasedBalance(address, amount, msgHash, v, r, s)` to transfer a part or whole of his unreleased balance to another account (address).
   * Get beneficiary corresponding to `_msgSender()`.
   * The param `amount` must be less or equal to `unreleasedBalanceOf(_msgSender())`
+  * The param `address` MUST be an EOA. (The param `address` should be equal to the address recovered by solidity global function `ecrecover` using param `msgHash`, `v`, `r` and `s`).
   * If `block.timestamp` is smaller than `EARLIEST_RELEASE_START_TIME`, update the properties of the beneficiary corresponding to `_msgSender()` as follow:
     * `unreleasedBalance` : `unreleasedBalance` - `amount`
     * `releaseStartTime` : `EARLIEST_RELEASE_START_TIME`
