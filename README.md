@@ -11,9 +11,6 @@ This is a contract based on standard [openzeppelin-contracts](https://github.com
 * The token has name `OctToken` and symbol `OCT`.
 * The token has fixed total supply - 100 million (100,000,000).
 * All of the OCT tokens will be minted to the owner (deployer) of the contract at construction time. After this, there is NO WAY to mint or burn OCT tokens.
-* Only the owner of the contract can transfer OCT tokens to other accounts until the function `unlockTransfer()` is called.
-* The function `unlockTransfer()` can ONLY be called by the owner of the contract.
-* After the owner of the contract call function `unlockTransfer()` the contract will act as a standard ERC20 contract, and there is NO WAY to lock the contract again.
 
 ### Contract 'OctFoundationTimelock'
 
