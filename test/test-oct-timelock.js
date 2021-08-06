@@ -108,12 +108,6 @@ describe("OctFoundationTimelock", function () {
       console.log('Successfully catched error: %s', error);
     });
     /**
-     * Unlock transfer on OctToken
-     */
-    console.log("Unlock transfer in contract 'OctToken'.");
-    tx = await oct.connect(owner).unlockTransfer();
-    await tx.wait();
-    /**
      * Change network time to '2022/09/01 00:00:00'
      */
     var secondsToEarlisestReleaseTime = 1630454400 - Math.floor(Date.now() / 1000);
@@ -197,13 +191,13 @@ describe("OctFoundationTimelock", function () {
      */
     await hre.network.provider.send("evm_increaseTime", [secondsToEarlisestReleaseTime + 1693526400 - 1661990400]);
     await hre.network.provider.send("evm_mine");
-    expect(await octTimelock.unreleasedBalanceOf(address1)).to.equal(BigNumber.from('773477987358582883161753'));
-    expect(await octTimelock.unreleasedSupervisedBalanceOf(address1)).to.equal(BigNumber.from('262931740341697704374570'));
-    expect(await octTimelock.releasedBalanceOf(address1)).to.equal(BigNumber.from('2863590272299719412463677'));
+    expect(await octTimelock.unreleasedBalanceOf(address1)).to.equal(BigNumber.from('778041279319400481292501'));
+    expect(await octTimelock.unreleasedSupervisedBalanceOf(address1)).to.equal(BigNumber.from('264482960048728369297134'));
+    expect(await octTimelock.releasedBalanceOf(address1)).to.equal(BigNumber.from('2857475760631871149410365'));
     expect(await octTimelock.withdrawedBalanceOf(address1)).to.equal(BigNumber.from('1665145985401459854014597'));
-    expect(await octTimelock.unreleasedBalanceOf(address2)).to.equal(BigNumber.from('1236803149370425474552409'));
+    expect(await octTimelock.unreleasedBalanceOf(address2)).to.equal(BigNumber.from('1244099923113023854933249'));
     expect(await octTimelock.unreleasedSupervisedBalanceOf(address2)).to.equal(0);
-    expect(await octTimelock.releasedBalanceOf(address2)).to.equal(BigNumber.from('1763196850629574525447591'));
+    expect(await octTimelock.releasedBalanceOf(address2)).to.equal(BigNumber.from('1755900076886976145066751'));
     expect(await octTimelock.withdrawedBalanceOf(address2)).to.equal(0);
     /**
      * Change network time to '2025/09/01 00:00:00'
