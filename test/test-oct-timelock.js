@@ -189,20 +189,20 @@ describe("OctFoundationTimelock", function () {
     /**
      * Change network time to '2023/09/01 00:00:00'
      */
-    await hre.network.provider.send("evm_increaseTime", [secondsToEarlisestReleaseTime + 1693526400 - 1661990400]);
+    await hre.network.provider.send("evm_increaseTime", [1693526400 - 1661990400]);
     await hre.network.provider.send("evm_mine");
-    expect(await octTimelock.unreleasedBalanceOf(address1)).to.equal(BigNumber.from('778041279319400481292501'));
-    expect(await octTimelock.unreleasedSupervisedBalanceOf(address1)).to.equal(BigNumber.from('264482960048728369297134'));
-    expect(await octTimelock.releasedBalanceOf(address1)).to.equal(BigNumber.from('2857475760631871149410365'));
+    expect(await octTimelock.unreleasedBalanceOf(address1)).to.equal(BigNumber.from('835082428829620457926848'));
+    expect(await octTimelock.unreleasedSupervisedBalanceOf(address1)).to.equal(BigNumber.from('283873206386611680829182'));
+    expect(await octTimelock.releasedBalanceOf(address1)).to.equal(BigNumber.from('2781044364783767861243970'));
     expect(await octTimelock.withdrawedBalanceOf(address1)).to.equal(BigNumber.from('1665145985401459854014597'));
-    expect(await octTimelock.unreleasedBalanceOf(address2)).to.equal(BigNumber.from('1244099923113023854933249'));
+    expect(await octTimelock.unreleasedBalanceOf(address2)).to.equal(BigNumber.from('1335309594895503609693751'));
     expect(await octTimelock.unreleasedSupervisedBalanceOf(address2)).to.equal(0);
-    expect(await octTimelock.releasedBalanceOf(address2)).to.equal(BigNumber.from('1755900076886976145066751'));
+    expect(await octTimelock.releasedBalanceOf(address2)).to.equal(BigNumber.from('1664690405104496390306249'));
     expect(await octTimelock.withdrawedBalanceOf(address2)).to.equal(0);
     /**
      * Change network time to '2025/09/01 00:00:00'
      */
-    await hre.network.provider.send("evm_increaseTime", [secondsToEarlisestReleaseTime + 1756684800 - 1693526400]);
+    await hre.network.provider.send("evm_increaseTime", [1756684800 - 1693526400]);
     await hre.network.provider.send("evm_mine");
     expect(await octTimelock.unreleasedBalanceOf(address1)).to.equal(0);
     expect(await octTimelock.unreleasedSupervisedBalanceOf(address1)).to.equal(0);
