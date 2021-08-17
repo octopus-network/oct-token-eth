@@ -2,6 +2,17 @@
 
 This repository contains contracts for OCT token on Ethereum network.
 
+Contents
+
+* [Function specification](#function-specification)
+  * [Contract OctToken](#contract-octtoken)
+  * [Contract OctFoundationTimelock](#contract-octfoundationtimelock)
+* [Installation](#installation)
+  * [Install dependencies](#install-dependencies)
+  * [Install dependencies for development](#install-dependencies-for-development)
+* [Test](#test)
+* [Audit](#audit)
+
 ## Function specification
 
 ### Contract 'OctToken'
@@ -198,3 +209,7 @@ or
 ```shell
 npm run test
 ```
+
+## Audit
+
+These contracts had audited by SlowMist Security Team. Refer to [audit report](https://github.com/octopus-network/oct-token-eth/blob/main/SlowMist%20Audit%20Report%20-%20OctToken.pdf).
