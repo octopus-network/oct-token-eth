@@ -65,6 +65,10 @@ contract OctFoundationTimelock is Ownable {
 
     // Map of all beneficiaries
     mapping(address => Beneficiary) private _beneficiaries;
+    // Total balance of supervised benefit
+    uint256 private _total_supervised_benefit;
+    // Total balance of unsupervised benefit
+    uint256 private _total_unsupervised_benefit;
 
     event BenefitAdded(
         address indexed beneficiary,
@@ -81,6 +85,8 @@ contract OctFoundationTimelock is Ownable {
 
     constructor(IERC20 token_) {
         _token = token_;
+        _total_supervised_benefit = 0;
+        _total_unsupervised_benefit = 0;
     }
 
     /**
@@ -88,6 +94,20 @@ contract OctFoundationTimelock is Ownable {
      */
     function token() public view returns (IERC20) {
         return _token;
+    }
+
+    /**
+     * @return the total balance of supervised benefit
+     */
+    function totalBalanceOfSupervisedBenefit() public view returns (uint256) {
+        return _total_supervised_benefit;
+    }
+
+    /**
+     * @return the total balance of unsupervised benefit
+     */
+    function totalBalanceOfUnsupervisedBenefit() public view returns (uint256) {
+        return _total_unsupervised_benefit;
     }
 
     /**
@@ -224,7 +244,17 @@ contract OctFoundationTimelock is Ownable {
         uint256 amount,
         bool supervised
     ) public onlyOwner {
+        require(
+            token().balanceOf(address(this)) >=
+                _total_supervised_benefit + _total_unsupervised_benefit,
+            "OctFoundationTimelock: not enough deposit to benefit"
+        );
         _benefit(addr, amount, supervised);
+        if (supervised) {
+            _total_supervised_benefit += amount;
+        } else {
+            _total_unsupervised_benefit += amount;
+        }
 
         emit BenefitAdded(addr, amount, supervised);
     }
@@ -292,6 +322,7 @@ contract OctFoundationTimelock is Ownable {
                 block.timestamp -
                 (block.timestamp % SECONDS_OF_A_DAY);
         }
+        _total_supervised_benefit -= amount;
 
         emit BenefitReduced(addr, amount);
     }

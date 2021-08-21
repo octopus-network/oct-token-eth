@@ -70,16 +70,22 @@ describe("OctFoundationTimelock", function () {
      * Test contract 'OctFundationTimelock', before 'EARLIST_RELEASE_START_TIME'
      */
     await benefit(octTimelock, address1, BigNumber.from('4000000').mul(decimals), false);
+    expect(await octTimelock.totalBalanceOfSupervisedBenefit()).to.equal(0);
+    expect(await octTimelock.totalBalanceOfUnsupervisedBenefit()).to.equal(BigNumber.from('4000000').mul(decimals));
     expect(await octTimelock.unreleasedBalanceOf(address1)).to.equal(BigNumber.from('4000000').mul(decimals));
     expect(await octTimelock.unreleasedSupervisedBalanceOf(address1)).to.equal(0);
     expect(await octTimelock.releasedBalanceOf(address1)).to.equal(0);
     expect(await octTimelock.withdrawedBalanceOf(address1)).to.equal(0);
     await benefit(octTimelock, address1, BigNumber.from('1000000').mul(decimals), false);
+    expect(await octTimelock.totalBalanceOfSupervisedBenefit()).to.equal(0);
+    expect(await octTimelock.totalBalanceOfUnsupervisedBenefit()).to.equal(BigNumber.from('5000000').mul(decimals));
     expect(await octTimelock.unreleasedBalanceOf(address1)).to.equal(BigNumber.from('5000000').mul(decimals));
     expect(await octTimelock.unreleasedSupervisedBalanceOf(address1)).to.equal(0);
     expect(await octTimelock.releasedBalanceOf(address1)).to.equal(0);
     expect(await octTimelock.withdrawedBalanceOf(address1)).to.equal(0);
     await benefit(octTimelock, address1, BigNumber.from('2000000').mul(decimals), true);
+    expect(await octTimelock.totalBalanceOfSupervisedBenefit()).to.equal(BigNumber.from('2000000').mul(decimals));
+    expect(await octTimelock.totalBalanceOfUnsupervisedBenefit()).to.equal(BigNumber.from('5000000').mul(decimals));
     expect(await octTimelock.unreleasedBalanceOf(address1)).to.equal(BigNumber.from('5000000').mul(decimals));
     expect(await octTimelock.unreleasedSupervisedBalanceOf(address1)).to.equal(BigNumber.from('2000000').mul(decimals));
     expect(await octTimelock.releasedBalanceOf(address1)).to.equal(0);
@@ -100,6 +106,8 @@ describe("OctFoundationTimelock", function () {
     expect(await octTimelock.releasedBalanceOf(address2)).to.equal(0);
     expect(await octTimelock.withdrawedBalanceOf(address2)).to.equal(0);
     await decreaseBenefitOf(octTimelock, address1, BigNumber.from('1000000').mul(decimals));
+    expect(await octTimelock.totalBalanceOfSupervisedBenefit()).to.equal(BigNumber.from('1000000').mul(decimals));
+    expect(await octTimelock.totalBalanceOfUnsupervisedBenefit()).to.equal(BigNumber.from('5000000').mul(decimals));
     expect(await octTimelock.unreleasedBalanceOf(address1)).to.equal(BigNumber.from('4000000').mul(decimals));
     expect(await octTimelock.unreleasedSupervisedBalanceOf(address1)).to.equal(BigNumber.from('1000000').mul(decimals));
     expect(await octTimelock.releasedBalanceOf(address1)).to.equal(0);

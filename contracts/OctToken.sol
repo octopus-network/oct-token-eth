@@ -12,7 +12,7 @@ contract OctToken is ERC20, Ownable {
     /**
      * @dev Initializes the contract, mint total supply to the deployer (owner).
      */
-    constructor() ERC20("OctToken", "OCT") {
+    constructor() ERC20("Octopus Network Token", "OCT") {
         _mint(msg.sender, TOTAL_SUPPLY * 10**(uint256(decimals())));
     }
 }
