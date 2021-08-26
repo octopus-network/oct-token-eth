@@ -245,4 +245,4 @@ npm run test
 
 ## Audit
 
-These contracts had audited by SlowMist Security Team. Refer to [audit report](https://github.com/octopus-network/oct-token-eth/blob/main/SlowMist%20Audit%20Report%20-%20OctToken.pdf).
+These contracts had audited by SlowMist Security Team. Refer to [audit report](https://github.com/octopus-network/oct-token-eth/blob/main/SlowMist%20Audit%20Report%20-%20Octopus%20Network%20Token.pdf).
