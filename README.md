@@ -12,6 +12,7 @@ Contents
   * [Withdraw benefit](#withdraw-benefit)
   * [Transfer unreleased balance](#transfer-unreleased-balance)
   * [Decrease benefit](#decrease-benefit)
+* [Contract 'UnsupervisedTimelock'](#contract-unsupervisedtimelock)
 * [Installation](#installation)
   * [Install dependencies](#install-dependencies)
   * [Install dependencies for development](#install-dependencies-for-development)
@@ -204,6 +205,46 @@ Only the owner (deployer) of this contract can call function `decreaseBenefitOf(
   * `unreleasedSupervisedBalance` : `unreleasedSupervisedBalanceOf(address)` - `amount`
   * `releaseStartTime` : `block.timestamp` - (`block.timestamp` % `SECONDS_OF_A_DAY`)
 * Reduce `totalSupervisedBenefit` by `amount`.
+
+## Contract 'UnsupervisedTimelock'
+
+This contract will lock a certain amount of OCT token and release them linearly by the passed days in timelock duration.
+
+This contract will be initialized by following parameters:
+
+* `token_`: The address of ERC20 contract `OctToken`.
+* `beneficiary_`: The address of beneficiary, who can withdraw benefit by time passed.
+* `releaseStartTime_`: The start time from which the benefit locked in this contract can be withdrawed. It should be a UNIX timestamp in seconds.
+* `daysOfTimelock_`: The days in timelock duration (from the `releaseStartTime`).
+* `totalBenefit_`: The total amount of OCT token that the `beneficiary` can withdraw during the timelock duration.
+
+The `releaseStartTime_` will be truncated to `00:00:00` of the day which the `releaseStartTime_` is in.
+
+The benefit issuer should transfer the `totalBenefit_` amount of OCT token to this contract after the contract is deployed.
+
+This contract has only one function which can change the state of the contract: `withdraw()`, with no parameter. Anyone can call this function to transfer a certain amount of OCT token that is locked in this contract to the `beneficiary_`.
+
+The processing steps of function `withdraw()` are as follow:
+
+* Calculate `releasedBalance`:
+
+```javascript
+releasedBalance = <totalBenefit_> * <the days passed since releaseStartTime_> / <daysOfTimelock_>
+```
+
+* The `releasedBalance` must be bigger than `withdrawedBalance`.
+* The `transferAmount` of this call is calclulated by:
+
+```javascript
+transferAmount = releasedBalance - withdrawedBalance
+```
+
+* The amount of OCT token held by this contract must be not smaller than `transferAmount`.
+* Add `transferAmount` to `withdrawedAmount`.
+* Perform token transfer by calling `safeTransfer` function of `token_`.
+* Emit event for this withdraw action.
+
+This contract also have view functions for querying the value of `unreleasedBalance`, `releasedBalance` and `withdrawedBalance`.
 
 ## Installation
 

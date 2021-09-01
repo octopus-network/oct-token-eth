@@ -34,13 +34,13 @@ contract UnsupervisedTimelock {
     constructor(
         IERC20 token_,
         address beneficiary_,
-        uint256 startTime_,
+        uint256 releaseStartTime_,
         uint256 daysOfTimelock_,
         uint256 totalBenefit_
     ) {
         _token = token_;
         _beneficiary = beneficiary_;
-        _releaseStartTime = startTime_ - (startTime_ % SECONDS_OF_A_DAY);
+        _releaseStartTime = releaseStartTime_ - (releaseStartTime_ % SECONDS_OF_A_DAY);
         _daysOfTimelock = daysOfTimelock_;
         _totalBenefit = totalBenefit_;
         _withdrawedBalance = 0;
