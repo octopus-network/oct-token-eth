@@ -27,7 +27,7 @@ contract UnsupervisedTimelock {
     // The amount of withdrawed balance of the beneficiary.
     //
     // This value will be updated on each withdraw operation.
-    uint256 _withdrawedBalance;
+    uint256 private _withdrawedBalance;
 
     event BenefitWithdrawed(address indexed beneficiary, uint256 amount);
 
@@ -40,7 +40,17 @@ contract UnsupervisedTimelock {
     ) {
         _token = token_;
         _beneficiary = beneficiary_;
-        _releaseStartTime = releaseStartTime_ - (releaseStartTime_ % SECONDS_OF_A_DAY);
+        _releaseStartTime =
+            releaseStartTime_ -
+            (releaseStartTime_ % SECONDS_OF_A_DAY);
+        require(
+            releaseStartTime_ -
+                (releaseStartTime_ % SECONDS_OF_A_DAY) +
+                daysOfTimelock_ *
+                SECONDS_OF_A_DAY >
+                block.timestamp,
+            "UnsupervisedTimelock: release end time is before current time"
+        );
         _daysOfTimelock = daysOfTimelock_;
         _totalBenefit = totalBenefit_;
         _withdrawedBalance = 0;
@@ -99,7 +109,8 @@ contract UnsupervisedTimelock {
             balanceShouldBeReleased > _withdrawedBalance,
             "UnsupervisedTimelock: no more benefit can be withdrawed now"
         );
-        uint256 balanceShouldBeTransfered = balanceShouldBeReleased - _withdrawedBalance;
+        uint256 balanceShouldBeTransfered = balanceShouldBeReleased -
+            _withdrawedBalance;
         require(
             token().balanceOf(address(this)) >= balanceShouldBeTransfered,
             "UnsupervisedTimelock: deposited balance is not enough"
