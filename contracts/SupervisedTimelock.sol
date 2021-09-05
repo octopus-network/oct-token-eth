@@ -20,7 +20,7 @@ contract SupervisedTimelock is Ownable {
     // The start timestamp of token release period.
     //
     // Before this time, the beneficiary can NOT withdraw any token from this contract.
-    uint256 private _releaseStartTime;
+    uint256 private immutable _releaseStartTime;
     // The end timestamp of token release period.
     //
     // After this time, the beneficiary can withdraw all amount of benefit.
@@ -39,8 +39,6 @@ contract SupervisedTimelock is Ownable {
     // The flag of whether this contract is terminated.
     bool private _isTerminated;
 
-    event BenefitIncreased(address indexed beneficiary, uint256 amount);
-    event BenefitDecreased(address indexed beneficiary, uint256 amount);
     event BenefitWithdrawed(address indexed beneficiary, uint256 amount);
     event ContractIsTerminated(address indexed beneficiary, uint256 amount);
 
@@ -53,11 +51,10 @@ contract SupervisedTimelock is Ownable {
     ) {
         _token = token_;
         _beneficiary = beneficiary_;
-        _releaseStartTime =
-            releaseStartTime_ -
-            (releaseStartTime_ % SECONDS_OF_A_DAY);
+        releaseStartTime_ -= (releaseStartTime_ % SECONDS_OF_A_DAY);
+        _releaseStartTime = releaseStartTime_;
         _releaseEndTime =
-            _releaseStartTime +
+            releaseStartTime_ +
             daysOfTimelock_ *
             SECONDS_OF_A_DAY;
         require(
@@ -145,44 +142,6 @@ contract SupervisedTimelock is Ownable {
         token().safeTransfer(_beneficiary, amount);
 
         emit BenefitWithdrawed(_beneficiary, amount);
-    }
-
-    /**
-     * @notice Increases total benefit and set current time as new _releaseStartTime.
-     */
-    function increaseBenefit(uint256 amount) public onlyOwner isNotTerminated {
-        require(
-            token().balanceOf(address(this)) >= unreleasedBalance() + amount,
-            "SupervisedTimelock: deposited amount is not enough"
-        );
-        if (block.timestamp > _releaseStartTime) {
-            _releasedBalance = releasedBalance();
-            _releaseStartTime =
-                block.timestamp -
-                (block.timestamp % SECONDS_OF_A_DAY);
-        }
-        _totalBenefit += amount;
-
-        emit BenefitIncreased(_beneficiary, amount);
-    }
-
-    /**
-     * @notice Decrease amount of unreleased balance and set current time as new _releaseStartTime.
-     */
-    function decreaseBenefit(uint256 amount) public onlyOwner isNotTerminated {
-        require(
-            unreleasedBalance() >= amount,
-            "SupervisedTimelock: decrease amount exceeds unreleased balance"
-        );
-        if (block.timestamp > _releaseStartTime) {
-            _releasedBalance = releasedBalance();
-            _releaseStartTime =
-                block.timestamp -
-                (block.timestamp % SECONDS_OF_A_DAY);
-        }
-        _totalBenefit -= amount;
-
-        emit BenefitDecreased(_beneficiary, amount);
     }
 
     /**
