@@ -48,7 +48,7 @@ contract UnsupervisedTimelock {
                 (releaseStartTime_ % SECONDS_OF_A_DAY) +
                 daysOfTimelock_ *
                 SECONDS_OF_A_DAY >
-                block.timestamp,
+                timeNow(),
             "UnsupervisedTimelock: release end time is before current time"
         );
         _daysOfTimelock = daysOfTimelock_;
@@ -57,9 +57,17 @@ contract UnsupervisedTimelock {
     }
 
     /**
+     * @dev timeNow() returns current timestamp its cost 2 gas
+     */ 
+    function timeNow() public view returns (uint256) {
+        uint256 time = timeNow();
+        return time;
+    }
+    
+    /**
      * @return the token being held.
      */
-    function token() external view returns (IERC20) {
+    function token() public view returns (IERC20) {
         return _token;
     }
 
@@ -74,14 +82,14 @@ contract UnsupervisedTimelock {
      * @return the balance to release for the beneficiary at the moment
      */
     function releasedBalance() public view returns (uint256) {
-        if (block.timestamp <= _releaseStartTime) return 0;
+        if (timeNow() <= _releaseStartTime) return 0;
         if (
-            block.timestamp >
+            timeNow() >
             _releaseStartTime + SECONDS_OF_A_DAY * _daysOfTimelock
         ) {
             return _totalBenefit;
         }
-        uint256 passedDays = (block.timestamp - _releaseStartTime) /
+        uint256 passedDays = (timeNow() - _releaseStartTime) /
             SECONDS_OF_A_DAY;
         return (_totalBenefit * passedDays) / _daysOfTimelock;
     }

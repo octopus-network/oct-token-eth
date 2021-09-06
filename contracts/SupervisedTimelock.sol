@@ -53,7 +53,7 @@ contract SupervisedTimelock is Ownable {
             daysOfTimelock_ *
             SECONDS_OF_A_DAY;
         require(
-            _releaseEndTime > block.timestamp,
+            _releaseEndTime > timeNow(),
             "SupervisedTimelock: release end time is before current time"
         );
         _totalBenefit = totalBenefit_;
@@ -72,10 +72,19 @@ contract SupervisedTimelock is Ownable {
         _;
     }
 
+    
+    /**
+     * @dev timeNow() returns current timestamp its cost 2 gas
+     */ 
+    function timeNow() public view returns (uint256) {
+        uint256 time = block.timestamp;
+        return time;
+    }
+
     /**
      * @return the token being held.
      */
-    function token() external view returns (IERC20) {
+    function token() public view returns (IERC20) {
         return _token;
     }
 
@@ -90,11 +99,11 @@ contract SupervisedTimelock is Ownable {
      * @return the balance which can be withdrawed at the moment
      */
     function releasedBalance() public view returns (uint256) {
-        if (block.timestamp <= _releaseStartTime) return 0;
-        if (block.timestamp > _releaseEndTime) {
+        if (timeNow() <= _releaseStartTime) return 0;
+        if (timeNow() > _releaseEndTime) {
             return _totalBenefit;
         }
-        uint256 passedDays = (block.timestamp - _releaseStartTime) /
+        uint256 passedDays = (timeNow() - _releaseStartTime) /
             SECONDS_OF_A_DAY;
         uint256 totalDays = (_releaseEndTime - _releaseStartTime) /
             SECONDS_OF_A_DAY;
@@ -143,8 +152,8 @@ contract SupervisedTimelock is Ownable {
     function terminate() public onlyOwner isNotTerminated {
         _totalBenefit = releasedBalance();
         _releaseEndTime =
-            block.timestamp -
-            (block.timestamp % SECONDS_OF_A_DAY);
+            timeNow() -
+            (timeNow() % SECONDS_OF_A_DAY);
         _isTerminated = true;
 
         uint256 amountToWithdraw = token().balanceOf(address(this)) -
