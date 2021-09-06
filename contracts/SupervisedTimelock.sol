@@ -27,11 +27,6 @@ contract SupervisedTimelock is Ownable {
     uint256 private _releaseEndTime;
     // Total balance of benefit
     uint256 private _totalBenefit;
-    // The amount of released balance of the beneficiary.
-    //
-    // This value may NOT be equal to the actual total released balance,
-    // call function 'releasedBalanceOf(address)' to get actual value.
-    uint256 private _releasedBalance;
     // The amount of withdrawed balance of the beneficiary.
     //
     // This value will be updated on each withdraw operation.
@@ -62,7 +57,6 @@ contract SupervisedTimelock is Ownable {
             "SupervisedTimelock: release end time is before current time"
         );
         _totalBenefit = totalBenefit_;
-        _releasedBalance = 0;
         _withdrawedBalance = 0;
         _isTerminated = false;
     }
@@ -104,10 +98,7 @@ contract SupervisedTimelock is Ownable {
             SECONDS_OF_A_DAY;
         uint256 totalDays = (_releaseEndTime - _releaseStartTime) /
             SECONDS_OF_A_DAY;
-        return
-            _releasedBalance +
-            ((_totalBenefit - _releasedBalance) * passedDays) /
-            totalDays;
+        return (_totalBenefit * passedDays) / totalDays;
     }
 
     /**
