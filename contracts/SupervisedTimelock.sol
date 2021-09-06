@@ -75,14 +75,14 @@ contract SupervisedTimelock is Ownable {
     /**
      * @return the token being held.
      */
-    function token() public view returns (IERC20) {
+    function token() external view returns (IERC20) {
         return _token;
     }
 
     /**
      * @return the amount of total benefit
      */
-    function totalBenefit() public view returns (uint256) {
+    function totalBenefit() external view returns (uint256) {
         return _totalBenefit;
     }
 
@@ -104,14 +104,14 @@ contract SupervisedTimelock is Ownable {
     /**
      * @return the unreleased balance at the moment
      */
-    function unreleasedBalance() public view returns (uint256) {
+    function unreleasedBalance() external view returns (uint256) {
         return _totalBenefit - releasedBalance();
     }
 
     /**
      * @return the withdrawed balance at the moment
      */
-    function withdrawedBalance() public view returns (uint256) {
+    function withdrawedBalance() external view returns (uint256) {
         return _withdrawedBalance;
     }
 

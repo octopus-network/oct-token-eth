@@ -59,14 +59,14 @@ contract UnsupervisedTimelock {
     /**
      * @return the token being held.
      */
-    function token() public view returns (IERC20) {
+    function token() external view returns (IERC20) {
         return _token;
     }
 
     /**
      * @return the total balance of benefit
      */
-    function totalBenefit() public view returns (uint256) {
+    function totalBenefit() external view returns (uint256) {
         return _totalBenefit;
     }
 
@@ -89,14 +89,14 @@ contract UnsupervisedTimelock {
     /**
      * @return the unreleased balance of the beneficiary at the moment
      */
-    function unreleasedBalance() public view returns (uint256) {
+    function unreleasedBalance() external view returns (uint256) {
         return _totalBenefit - releasedBalance();
     }
 
     /**
      * @return the withdrawed balance of beneficiary
      */
-    function withdrawedBalance() public view returns (uint256) {
+    function withdrawedBalance() external view returns (uint256) {
         return _withdrawedBalance;
     }
 
