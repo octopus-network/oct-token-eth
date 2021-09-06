@@ -45,6 +45,10 @@ contract SupervisedTimelock is Ownable {
         uint256 totalBenefit_
     ) {
         _token = token_;
+        require(
+            !isContract(beneficiary_), 
+            "The beneficiary cannot be a contract"
+        );
         _beneficiary = beneficiary_;
         releaseStartTime_ -= (releaseStartTime_ % SECONDS_OF_A_DAY);
         _releaseStartTime = releaseStartTime_;
@@ -72,7 +76,15 @@ contract SupervisedTimelock is Ownable {
         _;
     }
 
-    
+    /**
+     * @dev isContract() 
+     */
+    function isContract(address addr) public view returns (bool) {
+        uint size;
+        assembly { size := extcodesize(addr) }
+        return size > 0;
+    }
+
     /**
      * @dev timeNow() returns current timestamp its cost 2 gas
      */ 

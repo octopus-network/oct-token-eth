@@ -39,6 +39,10 @@ contract UnsupervisedTimelock {
         uint256 totalBenefit_
     ) {
         _token = token_;
+        require(
+            !isContract(beneficiary_), 
+            "The beneficiary cannot be a contract"
+        );
         _beneficiary = beneficiary_;
         _releaseStartTime =
             releaseStartTime_ -
@@ -55,6 +59,16 @@ contract UnsupervisedTimelock {
         _totalBenefit = totalBenefit_;
         _withdrawedBalance = 0;
     }
+
+    /**
+     * @dev isContract() 
+     */
+    function isContract(address addr) public view returns (bool) {
+        uint size;
+        assembly { size := extcodesize(addr) }
+        return size > 0;
+    }
+
 
     /**
      * @dev timeNow() returns current timestamp its cost 2 gas
