@@ -58,6 +58,8 @@ This contract will be initialized by following parameters:
 
 The value of this parameters will be used to initialize the state variables of this contract. The `releaseStartTime_` will be truncated to `00:00:00` of the day which the `releaseStartTime_` is in.
 
+> The address of `beneficiary_` should be address of an EOA. To simplify the opertion of beneficiary, we'll check this manually (off-chain).
+
 The benefit issuer should transfer the `totalBenefit_` amount of OCT token to this contract after the contract is deployed.
 
 This contract has only one function which can change the state of the contract: `withdraw()`, with no parameter. Anyone can call this function to transfer a certain amount of OCT token that is locked in this contract to the `_beneficiary`.
@@ -122,6 +124,8 @@ This contract will be initialized by following parameters:
 * `releaseStartTime_`: The start time from which the benefit locked in this contract can be withdrawed. It should be a UNIX timestamp in seconds.
 * `daysOfTimelock_`: The days in timelock duration (from the `_releaseStartTime`).
 * `totalBenefit_`: The total amount of OCT token that the `beneficiary` can withdraw during the timelock duration.
+
+> The address of `beneficiary_` should be address of an EOA. To simplify the opertion of beneficiary, we'll check this manually (off-chain).
 
 The value of this parameters will be used to initialize the state variables of this contract. The `releaseStartTime_` will be truncated to `00:00:00` of the day which the `releaseStartTime_` is in. The `_withdrawedBlance` is set to `0`. The `_isTerminated` is set to `false`. And the `_releaseEndTime` is calculated by:
 
