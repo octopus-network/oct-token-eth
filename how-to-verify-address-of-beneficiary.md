@@ -1,11 +1,17 @@
-# How to call function `transferUnreleasedBalance`
+# How to verify address of beneficiary
 
-The function `transferUnreleasdBalance` of contract `OctFoundationTimelock` is for splitting **unreleased** balance of a beneficiary of the contract to another address (whatever it is already the beneficiary of the contract or not).
+By using function `ecrecover` of Solidity, we can create a function to verify an address of Ethereum, to ensure that it is a public key corresponding to a real private key of an EOA. For example:
 
-The function needs 6 parameters:
+```c++
+    require(
+        ecrecover(msgHash, v, r, s) == address,
+        "TimelockContract: beneficiary MUST be an EOA"
+    );
+```
+
+The function needs 5 parameters:
 
 * `address`: The address of the new beneficiary.
-* `amount`: The amount of unreleased balance of the caller of the function.
 * `msgHash`: The hash of a message specified by the new beneficiary.
 * `v`, `r`, `s`: The 3 parts of the signature of the message specified by the new beneficiary. The message used here MUST be exactly the same as the one used in calculating param `msgHash`.
 
