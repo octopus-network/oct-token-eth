@@ -80,6 +80,13 @@ contract SupervisedTimelock is Ownable {
     }
 
     /**
+     * @return the beneficiary address
+     */
+    function beneficiary() public view returns (address) {
+        return _beneficiary;
+    }
+
+    /**
      * @return the amount of total benefit
      */
     function totalBenefit() public view returns (uint256) {

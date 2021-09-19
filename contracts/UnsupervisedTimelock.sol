@@ -64,6 +64,13 @@ contract UnsupervisedTimelock {
     }
 
     /**
+     * @return the beneficiary address
+     */
+    function beneficiary() public view returns (address) {
+        return _beneficiary;
+    }
+
+    /**
      * @return the total balance of benefit
      */
     function totalBenefit() public view returns (uint256) {
