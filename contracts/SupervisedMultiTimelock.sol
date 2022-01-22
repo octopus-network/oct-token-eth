@@ -129,7 +129,7 @@ contract SupervisedMultiTimelock is Ownable {
             "SupervisedMultiTimelock: the amount should be greater than 0."
         );
         require(
-            issuedBenefitOf(addr) == 0,
+            issuedBenefitOf(addr) == 0 && withdrawnAmountOf(addr) == 0,
             "SupervisedMultiTimelock: the address is already a beneficiary."
         );
         _benefitAmount[addr] = amount;
@@ -168,7 +168,7 @@ contract SupervisedMultiTimelock is Ownable {
         uint256 remainingAmount = issuedBenefitOf(addr) -
             withdrawnAmountOf(addr);
         _totalBenefitAmount -= remainingAmount;
-        _benefitAmount[addr] = withdrawnAmountOf(addr);
+        _benefitAmount[addr] = 0;
 
         emit BenefitIsTerminated(addr, remainingAmount);
     }
