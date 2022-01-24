@@ -5,6 +5,13 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+struct Benefit {
+    uint256 totalAmount;
+    uint256 releaseStartTime;
+    uint256 releaseEndTime;
+    uint256 withdrawnAmount;
+}
+
 /**
  * @dev A token holder contract that will allow a beneficiary to withdraw the
  * tokens after a given release time.
@@ -15,47 +22,20 @@ contract SupervisedMultiTimelock is Ownable {
     uint256 private constant SECONDS_OF_A_DAY = 86400;
     // The OctToken contract
     IERC20 private immutable _token;
-    // The start timestamp of token release period.
-    //
-    // Before this time, the beneficiary can NOT withdraw any token from this contract.
-    uint256 private immutable _releaseStartTime;
-    // The end timestamp of token release period.
-    //
-    // After this time, the beneficiary can withdraw all amount of benefit.
-    uint256 private _releaseEndTime;
-    // Total amount of all issued benefits.
-    uint256 private _totalBenefitAmount;
-    // Total amount of all benefits which are already withdrawn by the beneficiaries.
-    uint256 private _totalWithdrawnAmount;
-    // The mapping of personal benefit.
-    mapping(address => uint256) private _benefitAmount;
-    // The mapping of withdrawn amount of beneficiaries.
-    //
-    // This value will be updated on each withdraw operation.
-    mapping(address => uint256) private _withdrawnAmount;
 
-    event BenefitIsIssued(address indexed beneficiary, uint256 amount);
+    mapping(address => Benefit) _beneficiaries;
+
+    event BenefitIsIssued(
+        address indexed beneficiary,
+        uint256 amount,
+        uint256 releaseStartTime,
+        uint256 daysOfTimelock
+    );
     event BenefitIsWithdrawn(address indexed beneficiary, uint256 amount);
-    event BenefitIsTerminated(address indexed beneficiary, uint256 amount);
+    event BenefitIsTerminated(address indexed beneficiary);
 
-    constructor(
-        IERC20 token_,
-        uint256 releaseStartTime_,
-        uint256 daysOfTimelock_
-    ) {
+    constructor(IERC20 token_) {
         _token = token_;
-        releaseStartTime_ -= (releaseStartTime_ % SECONDS_OF_A_DAY);
-        _releaseStartTime = releaseStartTime_;
-        _releaseEndTime =
-            releaseStartTime_ +
-            daysOfTimelock_ *
-            SECONDS_OF_A_DAY;
-        require(
-            _releaseEndTime > block.timestamp,
-            "SupervisedMultiTimelock: release end time is before current time."
-        );
-        _totalBenefitAmount = 0;
-        _totalWithdrawnAmount = 0;
     }
 
     /**
@@ -66,76 +46,84 @@ contract SupervisedMultiTimelock is Ownable {
     }
 
     /**
-     * @return the amount of total benefits
-     */
-    function totalBenefits() public view returns (uint256) {
-        return _totalBenefitAmount;
-    }
-
-    /**
-     * @return the amount of total withdrawn amount
-     */
-    function totalWithdrawnAmount() public view returns (uint256) {
-        return _totalWithdrawnAmount;
-    }
-
-    /**
      * @return the issued benefit of a beneficiary
      */
     function issuedBenefitOf(address addr) public view returns (uint256) {
-        return _benefitAmount[addr];
+        return _beneficiaries[addr].totalAmount;
     }
 
     /**
      * @return the amount which can be withdrawn by a beneficiary at the moment
      */
     function releasedAmountOf(address addr) public view returns (uint256) {
-        uint256 benefit = _benefitAmount[addr];
-        if (benefit == 0) return 0;
-        if (block.timestamp <= _releaseStartTime) return 0;
-        if (block.timestamp > _releaseEndTime) {
-            return benefit;
+        Benefit memory benefit = _beneficiaries[addr];
+        if (benefit.totalAmount == 0) return 0;
+        if (block.timestamp <= benefit.releaseStartTime) return 0;
+        if (block.timestamp > benefit.releaseEndTime) {
+            return benefit.totalAmount;
         }
-        uint256 passedDays = (block.timestamp - _releaseStartTime) /
+        uint256 passedDays = (block.timestamp - benefit.releaseStartTime) /
             SECONDS_OF_A_DAY;
-        uint256 totalDays = (_releaseEndTime - _releaseStartTime) /
-            SECONDS_OF_A_DAY;
-        return (benefit * passedDays) / totalDays;
+        uint256 totalDays = (benefit.releaseEndTime -
+            benefit.releaseStartTime) / SECONDS_OF_A_DAY;
+        return (benefit.totalAmount * passedDays) / totalDays;
     }
 
     /**
      * @return the unreleased amount of a beneficiary at the moment
      */
     function unreleasedAmountOf(address addr) public view returns (uint256) {
-        uint256 benefit = _benefitAmount[addr];
-        if (benefit == 0) return 0;
-        return benefit - releasedAmountOf(addr);
+        Benefit memory benefit = _beneficiaries[addr];
+        if (benefit.totalAmount == 0) return 0;
+        return benefit.totalAmount - releasedAmountOf(addr);
     }
 
     /**
      * @return the withdrawn amount of a beneficiary at the moment
      */
     function withdrawnAmountOf(address addr) public view returns (uint256) {
-        return _withdrawnAmount[addr];
+        return _beneficiaries[addr].withdrawnAmount;
     }
 
     /**
      * @notice Issue a certain amount benefit to a beneficiary.
      * An address of a beneficiary can only be used once.
      */
-    function issueBenefitTo(address addr, uint256 amount) public onlyOwner {
+    function issueBenefitTo(
+        address addr,
+        uint256 totalAmount_,
+        uint256 releaseStartTime_,
+        uint256 daysOfTimelock_
+    ) public onlyOwner {
         require(
-            amount > 0,
-            "SupervisedMultiTimelock: the amount should be greater than 0."
-        );
-        require(
-            issuedBenefitOf(addr) == 0 && withdrawnAmountOf(addr) == 0,
+            issuedBenefitOf(addr) == 0,
             "SupervisedMultiTimelock: the address is already a beneficiary."
         );
-        _benefitAmount[addr] = amount;
-        _totalBenefitAmount += amount;
+        releaseStartTime_ -= (releaseStartTime_ % SECONDS_OF_A_DAY);
+        uint256 releaseEndTime = releaseStartTime_ +
+            daysOfTimelock_ *
+            SECONDS_OF_A_DAY;
+        require(
+            releaseEndTime > block.timestamp,
+            "SupervisedMultiTimelock: release end time is before current time."
+        );
+        require(
+            totalAmount_ > 0,
+            "SupervisedMultiTimelock: the total amount should be greater than 0."
+        );
+        _beneficiaries[addr] = Benefit({
+            totalAmount: totalAmount_,
+            releaseStartTime: releaseStartTime_,
+            releaseEndTime: releaseEndTime,
+            withdrawnAmount: 0
+        });
 
-        emit BenefitIsIssued(addr, amount);
+        emit BenefitIsIssued(
+            addr,
+            totalAmount_,
+            releaseStartTime_,
+            daysOfTimelock_
+        );
     }
 
     /**
@@ -153,8 +141,7 @@ contract SupervisedMultiTimelock is Ownable {
             "SupervisedMultiTimelock: deposited amount is not enough."
         );
 
-        _withdrawnAmount[addr] += amount;
-        _totalWithdrawnAmount += amount;
+        _beneficiaries[addr].withdrawnAmount += amount;
         token().safeTransfer(addr, amount);
 
         emit BenefitIsWithdrawn(addr, amount);
@@ -165,21 +152,22 @@ contract SupervisedMultiTimelock is Ownable {
      * The removed beneficiary can not withdraw benefit from this contract any more.
      */
     function terminateBenefitOf(address addr) public onlyOwner {
-        uint256 remainingAmount = issuedBenefitOf(addr) -
-            withdrawnAmountOf(addr);
-        _totalBenefitAmount -= remainingAmount;
-        _benefitAmount[addr] = 0;
+        delete _beneficiaries[addr];
 
-        emit BenefitIsTerminated(addr, remainingAmount);
+        emit BenefitIsTerminated(addr);
     }
 
     /**
-     * @notice Withdraw remaining benefit to the owner.
+     * @notice Withdraw a certain amount of remaining benefit to the owner.
      */
-    function withdrawRemainingBenefit() public onlyOwner {
+    function withdrawRemainingBenefit(uint256 amount) public onlyOwner {
         uint256 remainingAmount = token().balanceOf(address(this));
-        token().safeTransfer(owner(), remainingAmount);
+        require(
+            amount <= remainingAmount,
+            "SupervisedMultiTimelock: deposited amount is not enough."
+        );
+        token().safeTransfer(owner(), amount);
 
-        emit BenefitIsWithdrawn(owner(), remainingAmount);
+        emit BenefitIsWithdrawn(owner(), amount);
     }
 }

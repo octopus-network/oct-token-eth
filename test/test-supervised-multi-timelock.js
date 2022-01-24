@@ -4,8 +4,8 @@ const { hashMessage } = require("ethers/lib/utils");
 const { ethers } = require("hardhat");
 const { BigNumber } = require("ethers")
 
-async function issueBenefitTo(multiTimelock, address, amount) {
-  var tx = await multiTimelock.issueBenefitTo(address, amount);
+async function issueBenefitTo(multiTimelock, address, amount, releaseStartTime, daysOfTimelock) {
+  var tx = await multiTimelock.issueBenefitTo(address, amount, releaseStartTime, daysOfTimelock);
   var receipt = await tx.wait();
   console.log(receipt.events?.filter((x) => { return x.event == "BenefitIsIssued" }));
 }
@@ -22,8 +22,8 @@ async function terminateBenefitOf(multiTimelock, address) {
   console.log(receipt.events?.filter((x) => { return x.event == "BenefitIsTerminated" }));
 }
 
-async function withdrawRemainingBenefit(multiTimelock) {
-  var tx = await multiTimelock.withdrawRemainingBenefit();
+async function withdrawRemainingBenefit(multiTimelock, amount) {
+  var tx = await multiTimelock.withdrawRemainingBenefit(amount);
   var receipt = await tx.wait();
   console.log(receipt.events?.filter((x) => { return x.event == "BenefitIsWithdrawn" }));
 }
@@ -47,7 +47,7 @@ describe("SupervisedMultiTimelock", function () {
     await oct.deployed();
 
     const OctTimelock = await ethers.getContractFactory("SupervisedMultiTimelock");
-    const multiTimelock = await OctTimelock.deploy(oct.address, Math.floor(Date.now() / 1000), 5);
+    const multiTimelock = await OctTimelock.deploy(oct.address);
     await multiTimelock.deployed();
 
     console.log("Address of contract 'OctToken': %s", oct.address);
@@ -67,25 +67,23 @@ describe("SupervisedMultiTimelock", function () {
     expect(await oct.balanceOf(multiTimelock.address)).to.equal(BigNumber.from('500000').mul(decimals));
 
     console.log('Withdraw remaining benefit');
-    await withdrawRemainingBenefit(multiTimelock);
+    await withdrawRemainingBenefit(multiTimelock, BigNumber.from('500000').mul(decimals));
     expect(await oct.balanceOf(multiTimelock.address)).to.equal(BigNumber.from('0').mul(decimals));
     expect(await oct.balanceOf(ownerAddress)).to.equal(BigNumber.from('100000000').mul(decimals));
 
-    console.log('Transfer 1000000 from %s to %s', ownerAddress, multiTimelock.address);
-    var tx = await oct.transfer(multiTimelock.address, BigNumber.from('1000000').mul(decimals));
+    console.log('Transfer 1150000 from %s to %s', ownerAddress, multiTimelock.address);
+    var tx = await oct.transfer(multiTimelock.address, BigNumber.from('1150000').mul(decimals));
     await tx.wait();
-    expect(await oct.balanceOf(multiTimelock.address)).to.equal(BigNumber.from('1000000').mul(decimals));
+    expect(await oct.balanceOf(multiTimelock.address)).to.equal(BigNumber.from('1150000').mul(decimals));
     /**
      * Issue benefit to address1
      */
-    await issueBenefitTo(multiTimelock, address1, BigNumber.from('500000').mul(decimals));
-    expect(await multiTimelock.totalBenefits()).to.equal(BigNumber.from('500000').mul(decimals));
-    expect(await multiTimelock.totalWithdrawnAmount()).to.equal(BigNumber.from('0').mul(decimals));
+    await issueBenefitTo(multiTimelock, address1, BigNumber.from('500000').mul(decimals), Math.floor(Date.now() / 1000), 5);
     expect(await multiTimelock.issuedBenefitOf(address1)).to.equal(BigNumber.from('500000').mul(decimals));
     expect(await multiTimelock.unreleasedAmountOf(address1)).to.equal(BigNumber.from('500000').mul(decimals));
     expect(await multiTimelock.releasedAmountOf(address1)).to.equal(BigNumber.from('0').mul(decimals));
     expect(await multiTimelock.withdrawnAmountOf(address1)).to.equal(BigNumber.from('0').mul(decimals));
-    await multiTimelock.issueBenefitTo(address1, BigNumber.from('200000').mul(decimals)).catch((error) => {
+    await multiTimelock.issueBenefitTo(address1, BigNumber.from('200000').mul(decimals), Math.floor(Date.now() / 1000), 5).catch((error) => {
       console.log('Successfully catched error: %s', error);
     });
     await multiTimelock.connect(account1).withdrawBenefitOf(address1).catch((error) => {
@@ -94,14 +92,12 @@ describe("SupervisedMultiTimelock", function () {
     /**
      * Issue benefit to address3
      */
-    await issueBenefitTo(multiTimelock, address3, BigNumber.from('500000').mul(decimals));
-    expect(await multiTimelock.totalBenefits()).to.equal(BigNumber.from('1000000').mul(decimals));
-    expect(await multiTimelock.totalWithdrawnAmount()).to.equal(BigNumber.from('0').mul(decimals));
+    await issueBenefitTo(multiTimelock, address3, BigNumber.from('500000').mul(decimals), Math.floor(Date.now() / 1000), 4);
     expect(await multiTimelock.issuedBenefitOf(address3)).to.equal(BigNumber.from('500000').mul(decimals));
     expect(await multiTimelock.unreleasedAmountOf(address3)).to.equal(BigNumber.from('500000').mul(decimals));
     expect(await multiTimelock.releasedAmountOf(address3)).to.equal(BigNumber.from('0').mul(decimals));
     expect(await multiTimelock.withdrawnAmountOf(address3)).to.equal(BigNumber.from('0').mul(decimals));
-    await multiTimelock.issueBenefitTo(address3, BigNumber.from('300000').mul(decimals)).catch((error) => {
+    await multiTimelock.issueBenefitTo(address3, BigNumber.from('300000').mul(decimals), Math.floor(Date.now() / 1000), 3).catch((error) => {
       console.log('Successfully catched error: %s', error);
     });
     await multiTimelock.connect(account2).withdrawBenefitOf(address3).catch((error) => {
@@ -110,14 +106,12 @@ describe("SupervisedMultiTimelock", function () {
     /**
      * Issue benefit to address4
      */
-    await issueBenefitTo(multiTimelock, address4, BigNumber.from('500000').mul(decimals));
-    expect(await multiTimelock.totalBenefits()).to.equal(BigNumber.from('1500000').mul(decimals));
-    expect(await multiTimelock.totalWithdrawnAmount()).to.equal(BigNumber.from('0').mul(decimals));
-    expect(await multiTimelock.issuedBenefitOf(address4)).to.equal(BigNumber.from('500000').mul(decimals));
-    expect(await multiTimelock.unreleasedAmountOf(address4)).to.equal(BigNumber.from('500000').mul(decimals));
+    await issueBenefitTo(multiTimelock, address4, BigNumber.from('360000').mul(decimals), Math.floor(Date.now() / 1000), 3);
+    expect(await multiTimelock.issuedBenefitOf(address4)).to.equal(BigNumber.from('360000').mul(decimals));
+    expect(await multiTimelock.unreleasedAmountOf(address4)).to.equal(BigNumber.from('360000').mul(decimals));
     expect(await multiTimelock.releasedAmountOf(address4)).to.equal(BigNumber.from('0').mul(decimals));
     expect(await multiTimelock.withdrawnAmountOf(address4)).to.equal(BigNumber.from('0').mul(decimals));
-    await multiTimelock.issueBenefitTo(address4, BigNumber.from('400000').mul(decimals)).catch((error) => {
+    await multiTimelock.issueBenefitTo(address4, BigNumber.from('400000').mul(decimals), Math.floor(Date.now() / 1000), 4).catch((error) => {
       console.log('Successfully catched error: %s', error);
     });
     await multiTimelock.connect(account1).withdrawBenefitOf(address4).catch((error) => {
@@ -127,20 +121,16 @@ describe("SupervisedMultiTimelock", function () {
      * Terminate benefit of address4 and issue benefit again
      */
     await terminateBenefitOf(multiTimelock, address4);
-    expect(await multiTimelock.totalBenefits()).to.equal(BigNumber.from('1000000').mul(decimals));
-    expect(await multiTimelock.totalWithdrawnAmount()).to.equal(BigNumber.from('0').mul(decimals));
     expect(await multiTimelock.issuedBenefitOf(address4)).to.equal(BigNumber.from('0').mul(decimals));
     expect(await multiTimelock.unreleasedAmountOf(address4)).to.equal(BigNumber.from('0').mul(decimals));
     expect(await multiTimelock.releasedAmountOf(address4)).to.equal(BigNumber.from('0').mul(decimals));
     expect(await multiTimelock.withdrawnAmountOf(address4)).to.equal(BigNumber.from('0').mul(decimals));
-    await issueBenefitTo(multiTimelock, address4, BigNumber.from('350000').mul(decimals));
-    expect(await multiTimelock.totalBenefits()).to.equal(BigNumber.from('1350000').mul(decimals));
-    expect(await multiTimelock.totalWithdrawnAmount()).to.equal(BigNumber.from('0').mul(decimals));
-    expect(await multiTimelock.issuedBenefitOf(address4)).to.equal(BigNumber.from('350000').mul(decimals));
-    expect(await multiTimelock.unreleasedAmountOf(address4)).to.equal(BigNumber.from('350000').mul(decimals));
+    await issueBenefitTo(multiTimelock, address4, BigNumber.from('330000').mul(decimals), Math.floor(Date.now() / 1000), 3);
+    expect(await multiTimelock.issuedBenefitOf(address4)).to.equal(BigNumber.from('330000').mul(decimals));
+    expect(await multiTimelock.unreleasedAmountOf(address4)).to.equal(BigNumber.from('330000').mul(decimals));
     expect(await multiTimelock.releasedAmountOf(address4)).to.equal(BigNumber.from('0').mul(decimals));
     expect(await multiTimelock.withdrawnAmountOf(address4)).to.equal(BigNumber.from('0').mul(decimals));
-    await multiTimelock.issueBenefitTo(address4, BigNumber.from('400000').mul(decimals)).catch((error) => {
+    await multiTimelock.issueBenefitTo(address4, BigNumber.from('400000').mul(decimals), Math.floor(Date.now() / 1000), 4).catch((error) => {
       console.log('Successfully catched error: %s', error);
     });
     await multiTimelock.connect(account1).withdrawBenefitOf(address4).catch((error) => {
@@ -154,8 +144,6 @@ describe("SupervisedMultiTimelock", function () {
     /**
      * Confirm status of address1
      */
-    expect(await multiTimelock.totalBenefits()).to.equal(BigNumber.from('1350000').mul(decimals));
-    expect(await multiTimelock.totalWithdrawnAmount()).to.equal(BigNumber.from('0').mul(decimals));
     expect(await multiTimelock.issuedBenefitOf(address1)).to.equal(BigNumber.from('500000').mul(decimals));
     expect(await multiTimelock.unreleasedAmountOf(address1)).to.equal(BigNumber.from('400000').mul(decimals));
     expect(await multiTimelock.releasedAmountOf(address1)).to.equal(BigNumber.from('100000').mul(decimals));
@@ -163,8 +151,7 @@ describe("SupervisedMultiTimelock", function () {
     await withdrawBenefitOf(multiTimelock, account2, address1);
     expect(await oct.balanceOf(address2)).to.equal(BigNumber.from('0').mul(decimals));
     expect(await oct.balanceOf(address1)).to.equal(BigNumber.from('100000').mul(decimals));
-    expect(await multiTimelock.totalBenefits()).to.equal(BigNumber.from('1350000').mul(decimals));
-    expect(await multiTimelock.totalWithdrawnAmount()).to.equal(BigNumber.from('100000').mul(decimals));
+    expect(await oct.balanceOf(multiTimelock.address)).to.equal(BigNumber.from('1050000').mul(decimals));
     expect(await multiTimelock.issuedBenefitOf(address1)).to.equal(BigNumber.from('500000').mul(decimals));
     expect(await multiTimelock.unreleasedAmountOf(address1)).to.equal(BigNumber.from('400000').mul(decimals));
     expect(await multiTimelock.releasedAmountOf(address1)).to.equal(BigNumber.from('100000').mul(decimals));
@@ -175,42 +162,36 @@ describe("SupervisedMultiTimelock", function () {
     /**
      * Confirm status of address3
      */
-    expect(await multiTimelock.totalBenefits()).to.equal(BigNumber.from('1350000').mul(decimals));
-    expect(await multiTimelock.totalWithdrawnAmount()).to.equal(BigNumber.from('100000').mul(decimals));
     expect(await multiTimelock.issuedBenefitOf(address3)).to.equal(BigNumber.from('500000').mul(decimals));
-    expect(await multiTimelock.unreleasedAmountOf(address3)).to.equal(BigNumber.from('400000').mul(decimals));
-    expect(await multiTimelock.releasedAmountOf(address3)).to.equal(BigNumber.from('100000').mul(decimals));
+    expect(await multiTimelock.unreleasedAmountOf(address3)).to.equal(BigNumber.from('375000').mul(decimals));
+    expect(await multiTimelock.releasedAmountOf(address3)).to.equal(BigNumber.from('125000').mul(decimals));
     expect(await multiTimelock.withdrawnAmountOf(address3)).to.equal(BigNumber.from('0').mul(decimals));
     await withdrawBenefitOf(multiTimelock, account2, address3);
     expect(await oct.balanceOf(address2)).to.equal(BigNumber.from('0').mul(decimals));
-    expect(await oct.balanceOf(address3)).to.equal(BigNumber.from('100000').mul(decimals));
-    expect(await multiTimelock.totalBenefits()).to.equal(BigNumber.from('1350000').mul(decimals));
-    expect(await multiTimelock.totalWithdrawnAmount()).to.equal(BigNumber.from('200000').mul(decimals));
+    expect(await oct.balanceOf(address3)).to.equal(BigNumber.from('125000').mul(decimals));
+    expect(await oct.balanceOf(multiTimelock.address)).to.equal(BigNumber.from('925000').mul(decimals));
     expect(await multiTimelock.issuedBenefitOf(address3)).to.equal(BigNumber.from('500000').mul(decimals));
-    expect(await multiTimelock.unreleasedAmountOf(address3)).to.equal(BigNumber.from('400000').mul(decimals));
-    expect(await multiTimelock.releasedAmountOf(address3)).to.equal(BigNumber.from('100000').mul(decimals));
-    expect(await multiTimelock.withdrawnAmountOf(address3)).to.equal(BigNumber.from('100000').mul(decimals));
+    expect(await multiTimelock.unreleasedAmountOf(address3)).to.equal(BigNumber.from('375000').mul(decimals));
+    expect(await multiTimelock.releasedAmountOf(address3)).to.equal(BigNumber.from('125000').mul(decimals));
+    expect(await multiTimelock.withdrawnAmountOf(address3)).to.equal(BigNumber.from('125000').mul(decimals));
     await multiTimelock.connect(account3).withdrawBenefitOf(address3).catch((error) => {
       console.log('Successfully catched error: %s', error);
     });
     /**
      * Confirm status of address4
      */
-    expect(await multiTimelock.totalBenefits()).to.equal(BigNumber.from('1350000').mul(decimals));
-    expect(await multiTimelock.totalWithdrawnAmount()).to.equal(BigNumber.from('200000').mul(decimals));
-    expect(await multiTimelock.issuedBenefitOf(address4)).to.equal(BigNumber.from('350000').mul(decimals));
-    expect(await multiTimelock.unreleasedAmountOf(address4)).to.equal(BigNumber.from('280000').mul(decimals));
-    expect(await multiTimelock.releasedAmountOf(address4)).to.equal(BigNumber.from('70000').mul(decimals));
+    expect(await multiTimelock.issuedBenefitOf(address4)).to.equal(BigNumber.from('330000').mul(decimals));
+    expect(await multiTimelock.unreleasedAmountOf(address4)).to.equal(BigNumber.from('220000').mul(decimals));
+    expect(await multiTimelock.releasedAmountOf(address4)).to.equal(BigNumber.from('110000').mul(decimals));
     expect(await multiTimelock.withdrawnAmountOf(address4)).to.equal(BigNumber.from('0').mul(decimals));
     await withdrawBenefitOf(multiTimelock, account2, address4);
     expect(await oct.balanceOf(address2)).to.equal(BigNumber.from('0').mul(decimals));
-    expect(await oct.balanceOf(address4)).to.equal(BigNumber.from('70000').mul(decimals));
-    expect(await multiTimelock.totalBenefits()).to.equal(BigNumber.from('1350000').mul(decimals));
-    expect(await multiTimelock.totalWithdrawnAmount()).to.equal(BigNumber.from('270000').mul(decimals));
-    expect(await multiTimelock.issuedBenefitOf(address4)).to.equal(BigNumber.from('350000').mul(decimals));
-    expect(await multiTimelock.unreleasedAmountOf(address4)).to.equal(BigNumber.from('280000').mul(decimals));
-    expect(await multiTimelock.releasedAmountOf(address4)).to.equal(BigNumber.from('70000').mul(decimals));
-    expect(await multiTimelock.withdrawnAmountOf(address4)).to.equal(BigNumber.from('70000').mul(decimals));
+    expect(await oct.balanceOf(address4)).to.equal(BigNumber.from('110000').mul(decimals));
+    expect(await oct.balanceOf(multiTimelock.address)).to.equal(BigNumber.from('815000').mul(decimals));
+    expect(await multiTimelock.issuedBenefitOf(address4)).to.equal(BigNumber.from('330000').mul(decimals));
+    expect(await multiTimelock.unreleasedAmountOf(address4)).to.equal(BigNumber.from('220000').mul(decimals));
+    expect(await multiTimelock.releasedAmountOf(address4)).to.equal(BigNumber.from('110000').mul(decimals));
+    expect(await multiTimelock.withdrawnAmountOf(address4)).to.equal(BigNumber.from('110000').mul(decimals));
     await multiTimelock.connect(account4).withdrawBenefitOf(address4).catch((error) => {
       console.log('Successfully catched error: %s', error);
     });
@@ -222,8 +203,6 @@ describe("SupervisedMultiTimelock", function () {
     /**
      * Confirm status of address1
      */
-    expect(await multiTimelock.totalBenefits()).to.equal(BigNumber.from('1350000').mul(decimals));
-    expect(await multiTimelock.totalWithdrawnAmount()).to.equal(BigNumber.from('270000').mul(decimals));
     expect(await multiTimelock.issuedBenefitOf(address1)).to.equal(BigNumber.from('500000').mul(decimals));
     expect(await multiTimelock.unreleasedAmountOf(address1)).to.equal(BigNumber.from('200000').mul(decimals));
     expect(await multiTimelock.releasedAmountOf(address1)).to.equal(BigNumber.from('300000').mul(decimals));
@@ -231,8 +210,7 @@ describe("SupervisedMultiTimelock", function () {
     await withdrawBenefitOf(multiTimelock, account2, address1);
     expect(await oct.balanceOf(address2)).to.equal(BigNumber.from('0').mul(decimals));
     expect(await oct.balanceOf(address1)).to.equal(BigNumber.from('300000').mul(decimals));
-    expect(await multiTimelock.totalBenefits()).to.equal(BigNumber.from('1350000').mul(decimals));
-    expect(await multiTimelock.totalWithdrawnAmount()).to.equal(BigNumber.from('470000').mul(decimals));
+    expect(await oct.balanceOf(multiTimelock.address)).to.equal(BigNumber.from('615000').mul(decimals));
     expect(await multiTimelock.issuedBenefitOf(address1)).to.equal(BigNumber.from('500000').mul(decimals));
     expect(await multiTimelock.unreleasedAmountOf(address1)).to.equal(BigNumber.from('200000').mul(decimals));
     expect(await multiTimelock.releasedAmountOf(address1)).to.equal(BigNumber.from('300000').mul(decimals));
@@ -243,42 +221,36 @@ describe("SupervisedMultiTimelock", function () {
     /**
      * Confirm status of address3
      */
-    expect(await multiTimelock.totalBenefits()).to.equal(BigNumber.from('1350000').mul(decimals));
-    expect(await multiTimelock.totalWithdrawnAmount()).to.equal(BigNumber.from('470000').mul(decimals));
     expect(await multiTimelock.issuedBenefitOf(address3)).to.equal(BigNumber.from('500000').mul(decimals));
-    expect(await multiTimelock.unreleasedAmountOf(address3)).to.equal(BigNumber.from('200000').mul(decimals));
-    expect(await multiTimelock.releasedAmountOf(address3)).to.equal(BigNumber.from('300000').mul(decimals));
-    expect(await multiTimelock.withdrawnAmountOf(address3)).to.equal(BigNumber.from('100000').mul(decimals));
+    expect(await multiTimelock.unreleasedAmountOf(address3)).to.equal(BigNumber.from('125000').mul(decimals));
+    expect(await multiTimelock.releasedAmountOf(address3)).to.equal(BigNumber.from('375000').mul(decimals));
+    expect(await multiTimelock.withdrawnAmountOf(address3)).to.equal(BigNumber.from('125000').mul(decimals));
     await withdrawBenefitOf(multiTimelock, account2, address3);
     expect(await oct.balanceOf(address2)).to.equal(BigNumber.from('0').mul(decimals));
-    expect(await oct.balanceOf(address3)).to.equal(BigNumber.from('300000').mul(decimals));
-    expect(await multiTimelock.totalBenefits()).to.equal(BigNumber.from('1350000').mul(decimals));
-    expect(await multiTimelock.totalWithdrawnAmount()).to.equal(BigNumber.from('670000').mul(decimals));
+    expect(await oct.balanceOf(address3)).to.equal(BigNumber.from('375000').mul(decimals));
+    expect(await oct.balanceOf(multiTimelock.address)).to.equal(BigNumber.from('365000').mul(decimals));
     expect(await multiTimelock.issuedBenefitOf(address3)).to.equal(BigNumber.from('500000').mul(decimals));
-    expect(await multiTimelock.unreleasedAmountOf(address3)).to.equal(BigNumber.from('200000').mul(decimals));
-    expect(await multiTimelock.releasedAmountOf(address3)).to.equal(BigNumber.from('300000').mul(decimals));
-    expect(await multiTimelock.withdrawnAmountOf(address3)).to.equal(BigNumber.from('300000').mul(decimals));
+    expect(await multiTimelock.unreleasedAmountOf(address3)).to.equal(BigNumber.from('125000').mul(decimals));
+    expect(await multiTimelock.releasedAmountOf(address3)).to.equal(BigNumber.from('375000').mul(decimals));
+    expect(await multiTimelock.withdrawnAmountOf(address3)).to.equal(BigNumber.from('375000').mul(decimals));
     await multiTimelock.connect(account3).withdrawBenefitOf(address3).catch((error) => {
       console.log('Successfully catched error: %s', error);
     });
     /**
      * Confirm status of address4
      */
-    expect(await multiTimelock.totalBenefits()).to.equal(BigNumber.from('1350000').mul(decimals));
-    expect(await multiTimelock.totalWithdrawnAmount()).to.equal(BigNumber.from('670000').mul(decimals));
-    expect(await multiTimelock.issuedBenefitOf(address4)).to.equal(BigNumber.from('350000').mul(decimals));
-    expect(await multiTimelock.unreleasedAmountOf(address4)).to.equal(BigNumber.from('140000').mul(decimals));
-    expect(await multiTimelock.releasedAmountOf(address4)).to.equal(BigNumber.from('210000').mul(decimals));
-    expect(await multiTimelock.withdrawnAmountOf(address4)).to.equal(BigNumber.from('70000').mul(decimals));
+    expect(await multiTimelock.issuedBenefitOf(address4)).to.equal(BigNumber.from('330000').mul(decimals));
+    expect(await multiTimelock.unreleasedAmountOf(address4)).to.equal(BigNumber.from('0').mul(decimals));
+    expect(await multiTimelock.releasedAmountOf(address4)).to.equal(BigNumber.from('330000').mul(decimals));
+    expect(await multiTimelock.withdrawnAmountOf(address4)).to.equal(BigNumber.from('110000').mul(decimals));
     await withdrawBenefitOf(multiTimelock, account2, address4);
     expect(await oct.balanceOf(address2)).to.equal(BigNumber.from('0').mul(decimals));
-    expect(await oct.balanceOf(address4)).to.equal(BigNumber.from('210000').mul(decimals));
-    expect(await multiTimelock.totalBenefits()).to.equal(BigNumber.from('1350000').mul(decimals));
-    expect(await multiTimelock.totalWithdrawnAmount()).to.equal(BigNumber.from('810000').mul(decimals));
-    expect(await multiTimelock.issuedBenefitOf(address4)).to.equal(BigNumber.from('350000').mul(decimals));
-    expect(await multiTimelock.unreleasedAmountOf(address4)).to.equal(BigNumber.from('140000').mul(decimals));
-    expect(await multiTimelock.releasedAmountOf(address4)).to.equal(BigNumber.from('210000').mul(decimals));
-    expect(await multiTimelock.withdrawnAmountOf(address4)).to.equal(BigNumber.from('210000').mul(decimals));
+    expect(await oct.balanceOf(address4)).to.equal(BigNumber.from('330000').mul(decimals));
+    expect(await oct.balanceOf(multiTimelock.address)).to.equal(BigNumber.from('145000').mul(decimals));
+    expect(await multiTimelock.issuedBenefitOf(address4)).to.equal(BigNumber.from('330000').mul(decimals));
+    expect(await multiTimelock.unreleasedAmountOf(address4)).to.equal(BigNumber.from('0').mul(decimals));
+    expect(await multiTimelock.releasedAmountOf(address4)).to.equal(BigNumber.from('330000').mul(decimals));
+    expect(await multiTimelock.withdrawnAmountOf(address4)).to.equal(BigNumber.from('330000').mul(decimals));
     await multiTimelock.connect(account4).withdrawBenefitOf(address4).catch((error) => {
       console.log('Successfully catched error: %s', error);
     });
@@ -286,15 +258,15 @@ describe("SupervisedMultiTimelock", function () {
      * Terminate benefit of address3
      */
     await terminateBenefitOf(multiTimelock, address3);
-    expect(await multiTimelock.totalBenefits()).to.equal(BigNumber.from('1150000').mul(decimals));
-    expect(await multiTimelock.totalWithdrawnAmount()).to.equal(BigNumber.from('810000').mul(decimals));
     expect(await multiTimelock.issuedBenefitOf(address3)).to.equal(BigNumber.from('0').mul(decimals));
     expect(await multiTimelock.unreleasedAmountOf(address3)).to.equal(BigNumber.from('0').mul(decimals));
     expect(await multiTimelock.releasedAmountOf(address3)).to.equal(BigNumber.from('0').mul(decimals));
-    expect(await multiTimelock.withdrawnAmountOf(address3)).to.equal(BigNumber.from('300000').mul(decimals));
-    await multiTimelock.issueBenefitTo(address3, BigNumber.from('200000').mul(decimals)).catch((error) => {
-      console.log('Successfully catched error: %s', error);
-    });
+    expect(await multiTimelock.withdrawnAmountOf(address3)).to.equal(BigNumber.from('0').mul(decimals));
+    await multiTimelock.issueBenefitTo(address3, BigNumber.from('200000').mul(decimals), Math.floor(Date.now() / 1000), 5);
+    expect(await multiTimelock.issuedBenefitOf(address3)).to.equal(BigNumber.from('200000').mul(decimals));
+    expect(await multiTimelock.unreleasedAmountOf(address3)).to.equal(BigNumber.from('80000').mul(decimals));
+    expect(await multiTimelock.releasedAmountOf(address3)).to.equal(BigNumber.from('120000').mul(decimals));
+    expect(await multiTimelock.withdrawnAmountOf(address3)).to.equal(BigNumber.from('0').mul(decimals));
     /**
      * Pass 6 days
      */
@@ -303,8 +275,6 @@ describe("SupervisedMultiTimelock", function () {
     /**
      * Confirm status of address1
      */
-    expect(await multiTimelock.totalBenefits()).to.equal(BigNumber.from('1150000').mul(decimals));
-    expect(await multiTimelock.totalWithdrawnAmount()).to.equal(BigNumber.from('810000').mul(decimals));
     expect(await multiTimelock.issuedBenefitOf(address1)).to.equal(BigNumber.from('500000').mul(decimals));
     expect(await multiTimelock.unreleasedAmountOf(address1)).to.equal(BigNumber.from('0').mul(decimals));
     expect(await multiTimelock.releasedAmountOf(address1)).to.equal(BigNumber.from('500000').mul(decimals));
@@ -312,15 +282,14 @@ describe("SupervisedMultiTimelock", function () {
     await multiTimelock.connect(account1).withdrawBenefitOf(address1).catch((error) => {
       console.log('Successfully catched error: %s', error);
     });
-    console.log('Transfer 200000 from %s to %s', ownerAddress, multiTimelock.address);
-    var tx = await oct.transfer(multiTimelock.address, BigNumber.from('200000').mul(decimals));
+    console.log('Transfer 400000 from %s to %s', ownerAddress, multiTimelock.address);
+    var tx = await oct.transfer(multiTimelock.address, BigNumber.from('400000').mul(decimals));
     await tx.wait();
-    expect(await oct.balanceOf(multiTimelock.address)).to.equal(BigNumber.from('390000').mul(decimals));
+    expect(await oct.balanceOf(multiTimelock.address)).to.equal(BigNumber.from('545000').mul(decimals));
     await withdrawBenefitOf(multiTimelock, account2, address1);
     expect(await oct.balanceOf(address2)).to.equal(BigNumber.from('0').mul(decimals));
     expect(await oct.balanceOf(address1)).to.equal(BigNumber.from('500000').mul(decimals));
-    expect(await multiTimelock.totalBenefits()).to.equal(BigNumber.from('1150000').mul(decimals));
-    expect(await multiTimelock.totalWithdrawnAmount()).to.equal(BigNumber.from('1010000').mul(decimals));
+    expect(await oct.balanceOf(multiTimelock.address)).to.equal(BigNumber.from('345000').mul(decimals));
     expect(await multiTimelock.issuedBenefitOf(address1)).to.equal(BigNumber.from('500000').mul(decimals));
     expect(await multiTimelock.unreleasedAmountOf(address1)).to.equal(BigNumber.from('0').mul(decimals));
     expect(await multiTimelock.releasedAmountOf(address1)).to.equal(BigNumber.from('500000').mul(decimals));
@@ -329,29 +298,39 @@ describe("SupervisedMultiTimelock", function () {
       console.log('Successfully catched error: %s', error);
     });
     /**
-     * Confirm status of address4
+     * Confirm status of address3
      */
-    expect(await multiTimelock.totalBenefits()).to.equal(BigNumber.from('1150000').mul(decimals));
-    expect(await multiTimelock.totalWithdrawnAmount()).to.equal(BigNumber.from('1010000').mul(decimals));
-    expect(await multiTimelock.issuedBenefitOf(address4)).to.equal(BigNumber.from('350000').mul(decimals));
-    expect(await multiTimelock.unreleasedAmountOf(address4)).to.equal(BigNumber.from('0').mul(decimals));
-    expect(await multiTimelock.releasedAmountOf(address4)).to.equal(BigNumber.from('350000').mul(decimals));
-    expect(await multiTimelock.withdrawnAmountOf(address4)).to.equal(BigNumber.from('210000').mul(decimals));
-    await withdrawBenefitOf(multiTimelock, account2, address4);
+    expect(await multiTimelock.issuedBenefitOf(address3)).to.equal(BigNumber.from('200000').mul(decimals));
+    expect(await multiTimelock.unreleasedAmountOf(address3)).to.equal(BigNumber.from('0').mul(decimals));
+    expect(await multiTimelock.releasedAmountOf(address3)).to.equal(BigNumber.from('200000').mul(decimals));
+    expect(await multiTimelock.withdrawnAmountOf(address3)).to.equal(BigNumber.from('0').mul(decimals));
+    await withdrawBenefitOf(multiTimelock, account2, address3);
     expect(await oct.balanceOf(address2)).to.equal(BigNumber.from('0').mul(decimals));
-    expect(await oct.balanceOf(address4)).to.equal(BigNumber.from('350000').mul(decimals));
-    expect(await multiTimelock.totalBenefits()).to.equal(BigNumber.from('1150000').mul(decimals));
-    expect(await multiTimelock.totalWithdrawnAmount()).to.equal(BigNumber.from('1150000').mul(decimals));
-    expect(await multiTimelock.issuedBenefitOf(address4)).to.equal(BigNumber.from('350000').mul(decimals));
+    expect(await oct.balanceOf(address3)).to.equal(BigNumber.from('575000').mul(decimals));
+    expect(await oct.balanceOf(multiTimelock.address)).to.equal(BigNumber.from('145000').mul(decimals));
+    expect(await multiTimelock.issuedBenefitOf(address3)).to.equal(BigNumber.from('200000').mul(decimals));
+    expect(await multiTimelock.unreleasedAmountOf(address3)).to.equal(BigNumber.from('0').mul(decimals));
+    expect(await multiTimelock.releasedAmountOf(address3)).to.equal(BigNumber.from('200000').mul(decimals));
+    expect(await multiTimelock.withdrawnAmountOf(address3)).to.equal(BigNumber.from('200000').mul(decimals));
+    await multiTimelock.connect(account3).withdrawBenefitOf(address3).catch((error) => {
+      console.log('Successfully catched error: %s', error);
+    });
+    /**
+    * Confirm status of address4
+    */
+    expect(await multiTimelock.issuedBenefitOf(address4)).to.equal(BigNumber.from('330000').mul(decimals));
     expect(await multiTimelock.unreleasedAmountOf(address4)).to.equal(BigNumber.from('0').mul(decimals));
-    expect(await multiTimelock.releasedAmountOf(address4)).to.equal(BigNumber.from('350000').mul(decimals));
-    expect(await multiTimelock.withdrawnAmountOf(address4)).to.equal(BigNumber.from('350000').mul(decimals));
+    expect(await multiTimelock.releasedAmountOf(address4)).to.equal(BigNumber.from('330000').mul(decimals));
+    expect(await multiTimelock.withdrawnAmountOf(address4)).to.equal(BigNumber.from('330000').mul(decimals));
     await multiTimelock.connect(account4).withdrawBenefitOf(address4).catch((error) => {
       console.log('Successfully catched error: %s', error);
     });
+    /**
+     * Withdraw remaining benefit
+     */
     console.log('Withdraw remaining benefit');
-    await withdrawRemainingBenefit(multiTimelock);
+    await withdrawRemainingBenefit(multiTimelock, BigNumber.from('145000').mul(decimals));
     expect(await oct.balanceOf(multiTimelock.address)).to.equal(BigNumber.from('0').mul(decimals));
-    expect(await oct.balanceOf(ownerAddress)).to.equal(BigNumber.from('98850000').mul(decimals));
+    expect(await oct.balanceOf(ownerAddress)).to.equal(BigNumber.from('98595000').mul(decimals));
   });
 });
