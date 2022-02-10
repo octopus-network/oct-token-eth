@@ -225,4 +225,7 @@ npm run test
 
 ## Audit
 
-These contracts had audited by SlowMist Security Team. Refer to [audit report](https://github.com/octopus-network/oct-token-eth/blob/main/SlowMist%20Audit%20Report%20-%20Octopus%20Network%20Token.pdf).
+These contracts had audited by SlowMist Security Team.
+
+* OctToken, SupervisedTimeLock and UnsupervisedTimelock - Refer to [audit report 1](SlowMist%20Audit%20Report%20-%20Octopus%20Network%20Token.pdf).
+* SupervisedMultiTimelock - Refer to [audit report 2](SlowMist%20Audit%20Report%20-%20SupervisedMultiTimelock.pdf).
